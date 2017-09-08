@@ -1,0 +1,48 @@
+#!groovy
+node {
+    stage('checkout code ') {
+        checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'pravihs', url: 'https://github.com/ivanmalamen/3dsTest.git']]])
+    }
+
+    stage('Sonar Cube analysis') {
+        bat 'echo "Start Analysis code "'
+        bat 'gradlew SonarQube'
+        bat 'echo "End Analysis code "'
+        bat 'echo "Sonarcube analysis report can be viewed at the link: http://localhost:9000/"'
+    }
+
+    stage('Build the code') {
+        bat 'echo "Start Build code "'
+        bat 'gradlew -b UnitTest/build.gradle run jar'
+        bat 'echo "End Build code"'
+    }
+
+
+    stage('Test the code') {
+        bat 'echo "Start test code "'
+        bat 'gradlew -b UnitTest/build.gradle test'
+        bat 'echo "End test code"'
+    }
+
+
+    stage('Publish artifacts TO artifactory') {
+
+    }
+
+
+    stage('Create JIRA ID') {
+        def JIRAID = "3dexcite" + "-" + env.BUILD_NUMBER
+        def DESC = "New JIRA Created from Jenkins with build number:" + "-" + env.BUILD_NUMBER
+        def testIssue = [fields: [project    : [id: '10000'],
+                                  summary    : JIRAID,
+                                  description: DESC,
+                                  issuetype  : [name: 'Task']]]
+        response = jiraNewIssue issue: testIssue, site: 'jira2'
+
+        bat 'echo response.successful.toString()'
+        bat 'echo response.data.toString()'
+    }
+
+
+}
+ 
